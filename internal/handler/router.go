@@ -5,7 +5,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewRouter(logger *zap.Logger) chi.Router {
+func NewRouter(h *Handlers, logger *zap.Logger) chi.Router {
 	//func NewRouter(h *Handlers, logger *zap.Logger, auth *auth.AuthImpl) chi.Router {
 	r := chi.NewRouter()
 	//r.Use(gzipMiddleware(logger))
@@ -17,15 +17,11 @@ func NewRouter(logger *zap.Logger) chi.Router {
 
 	r.Group(func(r chi.Router) {
 		//r.Use(authMiddleware(logger, auth))
-		r.Route("/", func(r chi.Router) {
-			//r.Post("/", h.Shorten)
+		r.Route("/api/user", func(r chi.Router) {
+			r.Post("/register", h.Auth)
 			//r.Post("/api/shorten", h.ShortenJSON)
 			//r.Post("/api/shorten/batch", h.BatchShorten)
 			//r.Get("/{id}", h.Redirect)
-		})
-		r.Route("/api/user/urls", func(r chi.Router) {
-			//r.Get("/", h.User)
-			//r.Delete("/", h.Delete)
 		})
 	})
 
