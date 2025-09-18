@@ -2,8 +2,9 @@ package handler
 
 import (
 	"encoding/json"
-	"github.com/go-chi/jwtauth/v5"
+	"github.com/google/uuid"
 	"github.com/m3lifaro/gophermart/internal/model"
+	"github.com/m3lifaro/gophermart/internal/service"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"mime"
@@ -13,14 +14,15 @@ import (
 const jsonContentType = "application/json"
 
 var users = make(map[string]string) // login: hashedPassword
-var tokenAuth = jwtauth.New("HS256", []byte("secret-key"), nil)
+var usersMap = make(map[string]model.User)
 
 type AuthHandler struct {
-	logger *zap.Logger
+	authService service.Auth
+	logger      *zap.Logger
 }
 
-func NewAuthHandler(logger *zap.Logger) *AuthHandler {
-	return &AuthHandler{logger: logger}
+func NewAuthHandler(authService service.Auth, logger *zap.Logger) *AuthHandler {
+	return &AuthHandler{authService: authService, logger: logger}
 }
 func validateCredentials(req *model.CreateUserRequest) bool {
 	//todo
@@ -65,7 +67,20 @@ func (h *AuthHandler) ServeCreateHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	users[req.Login] = string(hash)
 	h.logger.Debug("got request", zap.String("username", req.Login))
-	_, tokenString, _ := tokenAuth.Encode(map[string]interface{}{"login": req.Login, "ID": "bimbo"})
+	user := &model.User{
+		Login: req.Login,
+		UUID:  uuid.New().String(),
+	}
+	usersMap[req.Login] = *user
+	tokenString, err := h.authService.GenerateToken(user)
+	if err != nil {
+		h.logger.Error(
+			"got error while generating token",
+			zap.Error(err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Authorization", "Bearer "+tokenString)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -103,7 +118,16 @@ func (h *AuthHandler) ServeLoginHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	_, tokenString, _ := tokenAuth.Encode(map[string]interface{}{"login": req.Login, "ID": "bimbo"})
+	user, ok := usersMap[req.Login]
+	tokenString, err := h.authService.GenerateToken(&user)
+	if err != nil {
+		h.logger.Error(
+			"got error while generating token",
+			zap.Error(err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	response := struct {
 		Token string `json:"token"`
 	}{Token: tokenString}
@@ -113,8 +137,14 @@ func (h *AuthHandler) ServeLoginHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) ProtectedEndpoint(w http.ResponseWriter, r *http.Request) {
-	_, claims, _ := jwtauth.FromContext(r.Context())
-	login := claims["login"]
-	ID := claims["ID"]
-	w.Write([]byte("Welcome, " + login.(string) + " ID: " + ID.(string)))
+	user, err := h.authService.ReadToken(r.Context())
+	if err != nil {
+		h.logger.Error(
+			"got error while reading token",
+			zap.Error(err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write([]byte("Welcome, " + user.Login + " ID: " + user.UUID))
 }

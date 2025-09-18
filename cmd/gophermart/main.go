@@ -4,6 +4,7 @@ import (
 	"github.com/m3lifaro/gophermart/cmd/config"
 	"github.com/m3lifaro/gophermart/internal/handler"
 	"github.com/m3lifaro/gophermart/internal/logger"
+	"github.com/m3lifaro/gophermart/internal/service"
 	"log"
 	"net/http"
 )
@@ -19,8 +20,9 @@ func main() {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
 	zl.Info("Hello world!")
-	handlers := handler.NewHandlers(zl)
-	r := handler.NewRouter(handlers, zl)
+	authService := service.NewAuth("secret-key")
+	handlers := handler.NewHandlers(authService, zl)
+	r := handler.NewRouter(handlers, authService, zl)
 	log.Printf("Server started on %s", cfg.ServeAddress)
 	log.Fatal(http.ListenAndServe(cfg.ServeAddress, r))
 }

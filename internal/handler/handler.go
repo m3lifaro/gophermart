@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/m3lifaro/gophermart/internal/service"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -12,10 +13,10 @@ type Handlers struct {
 	Protected http.HandlerFunc
 }
 
-func NewHandlers(logger *zap.Logger) *Handlers {
+func NewHandlers(authService service.Auth, logger *zap.Logger) *Handlers {
 	return &Handlers{
-		Register:  NewAuthHandler(logger).ServeCreateHTTP,
-		Login:     NewAuthHandler(logger).ServeLoginHTTP,
-		Protected: NewAuthHandler(logger).ProtectedEndpoint,
+		Register:  NewAuthHandler(authService, logger).ServeCreateHTTP,
+		Login:     NewAuthHandler(authService, logger).ServeLoginHTTP,
+		Protected: NewAuthHandler(authService, logger).ProtectedEndpoint,
 	}
 }
