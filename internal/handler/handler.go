@@ -7,11 +7,15 @@ import (
 )
 
 type Handlers struct {
-	Auth http.HandlerFunc
+	Register  http.HandlerFunc
+	Login     http.HandlerFunc
+	Protected http.HandlerFunc
 }
 
 func NewHandlers(logger *zap.Logger) *Handlers {
 	return &Handlers{
-		Auth: NewAuthHandler(logger).ServeCreateHTTP,
+		Register:  NewAuthHandler(logger).ServeCreateHTTP,
+		Login:     NewAuthHandler(logger).ServeLoginHTTP,
+		Protected: NewAuthHandler(logger).ProtectedEndpoint,
 	}
 }
