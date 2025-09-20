@@ -63,10 +63,6 @@ func (h *OrderHandler) ServeCreateOrderHTTP(w http.ResponseWriter, r *http.Reque
 
 	err = h.orderService.ProcessOrder(user.ID, orderNum)
 	if err != nil {
-		h.logger.Error(
-			"got error while reading token",
-			zap.Error(err),
-		)
 		if errors.Is(err, service.ErrOrderIDWrongFormat) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -83,9 +79,12 @@ func (h *OrderHandler) ServeCreateOrderHTTP(w http.ResponseWriter, r *http.Reque
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
+		h.logger.Error(
+			"got error while processing order",
+			zap.Error(err),
+		)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
-	return
 }

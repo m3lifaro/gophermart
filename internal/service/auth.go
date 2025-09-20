@@ -28,7 +28,7 @@ func (h *AuthImpl) GenerateToken(user *model.User) (string, error) {
 	//_, token, err := h.auth.Encode(map[string]interface{}{model.LoginKey: user.Login, model.UserIDKey: user.UUID, model.EmailKey: user.Email, model.RoleKey: user.Role})
 	_, token, err := h.auth.Encode(map[string]interface{}{model.LoginKey: user.Login, model.UserIDKey: user.ID})
 	if err != nil {
-		return "", fmt.Errorf("error generating jwt token for user(%s): %w", user, err)
+		return "", fmt.Errorf("error generating jwt token for user(login=%s, id=%d): %w", user.Login, user.ID, err)
 	}
 	return token, nil
 }
