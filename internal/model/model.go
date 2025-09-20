@@ -11,17 +11,20 @@ type LoginRequest struct {
 }
 
 type User struct {
-	UUID  string `json:"uuid"`
+	ID    int32  `json:"uid"`
 	Login string `json:"login"`
-	Email string `json:"email"`
-	Role  string `json:"role"`
+	//Email string `json:"email"`
+	//Role  string `json:"role"`
 }
-
+type UserDao struct {
+	Password string `json:"password"`
+	User
+}
 type jwtKey = string
 
 const (
-	UserIDKey jwtKey = "uuid"
+	UserIDKey jwtKey = "uid"
 	LoginKey  jwtKey = "login"
-	EmailKey  jwtKey = "email"
-	RoleKey   jwtKey = "role"
+	//EmailKey  jwtKey = "email"
+	//RoleKey   jwtKey = "role"
 )

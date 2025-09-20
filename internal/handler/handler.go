@@ -13,10 +13,10 @@ type Handlers struct {
 	Protected http.HandlerFunc
 }
 
-func NewHandlers(authService service.Auth, logger *zap.Logger) *Handlers {
+func NewHandlers(authService service.Auth, userService *service.UserService, logger *zap.Logger) *Handlers {
 	return &Handlers{
-		Register:  NewAuthHandler(authService, logger).ServeCreateHTTP,
-		Login:     NewAuthHandler(authService, logger).ServeLoginHTTP,
-		Protected: NewAuthHandler(authService, logger).ProtectedEndpoint,
+		Register:  NewAuthHandler(authService, userService, logger).ServeCreateHTTP,
+		Login:     NewAuthHandler(authService, userService, logger).ServeLoginHTTP,
+		Protected: NewAuthHandler(authService, userService, logger).ProtectedEndpoint,
 	}
 }

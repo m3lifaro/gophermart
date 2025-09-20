@@ -2,32 +2,27 @@ package handler
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
+	"errors"
+	internal "github.com/m3lifaro/gophermart/internal/errors"
 	"github.com/m3lifaro/gophermart/internal/model"
 	"github.com/m3lifaro/gophermart/internal/service"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 	"mime"
 	"net/http"
 )
 
 const jsonContentType = "application/json"
 
-var users = make(map[string]string) // login: hashedPassword
-var usersMap = make(map[string]model.User)
-
 type AuthHandler struct {
 	authService service.Auth
 	logger      *zap.Logger
+	userService *service.UserService
 }
 
-func NewAuthHandler(authService service.Auth, logger *zap.Logger) *AuthHandler {
-	return &AuthHandler{authService: authService, logger: logger}
+func NewAuthHandler(authService service.Auth, userService *service.UserService, logger *zap.Logger) *AuthHandler {
+	return &AuthHandler{authService: authService, userService: userService, logger: logger}
 }
-func validateCredentials(req *model.CreateUserRequest) bool {
-	//todo
-	return req.Login != "" && req.Password != ""
-}
+
 func (h *AuthHandler) ServeCreateHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -55,23 +50,22 @@ func (h *AuthHandler) ServeCreateHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if !validateCredentials(&req) {
-		h.logger.Error("invalid credentials", zap.Any("credentials", req))
+	if !h.userService.ValidateCredentials(&req) {
+		h.logger.Debug("invalid credentials", zap.Any("credentials", req))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	user, err := h.userService.CreateUser(req.Login, req.Password)
 	if err != nil {
-		http.Error(w, "Server error", http.StatusInternalServerError)
+		if errors.Is(err, internal.ErrUserExists) {
+			w.WriteHeader(http.StatusConflict)
+			w.Write([]byte("Login occupied"))
+			return
+		}
+		h.logger.Error("error creating user", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	users[req.Login] = string(hash)
-	h.logger.Debug("got request", zap.String("username", req.Login))
-	user := &model.User{
-		Login: req.Login,
-		UUID:  uuid.New().String(),
-	}
-	usersMap[req.Login] = *user
 	tokenString, err := h.authService.GenerateToken(user)
 	if err != nil {
 		h.logger.Error(
@@ -113,13 +107,15 @@ func (h *AuthHandler) ServeLoginHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	hash, ok := users[req.Login]
-	if !ok || bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)) != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+	user, err := h.userService.ValidateAndGetUser(req.Login, req.Password)
+	if err != nil {
+		if errors.Is(err, internal.ErrWrongLoginOrPassword) {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Wrong login or password"))
+			return
+		}
 	}
-	user, ok := usersMap[req.Login]
-	tokenString, err := h.authService.GenerateToken(&user)
+	tokenString, err := h.authService.GenerateToken(user)
 	if err != nil {
 		h.logger.Error(
 			"got error while generating token",
@@ -146,5 +142,5 @@ func (h *AuthHandler) ProtectedEndpoint(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Write([]byte("Welcome, " + user.Login + " ID: " + user.UUID))
+	w.Write([]byte("Welcome, " + user.Login))
 }
