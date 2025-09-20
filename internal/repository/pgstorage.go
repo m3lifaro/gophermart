@@ -64,3 +64,29 @@ func (s *PGStorage) CreateUser(user *model.UserDao) error {
 	}
 	return nil
 }
+
+func (s *PGStorage) AddOrder(userID int32, orderID string) error {
+	ctx := context.TODO()
+	var isNew bool
+	var ownerID int32
+	err := s.pool.QueryRow(ctx, `
+	   INSERT INTO user_orders(user_id, order_id) VALUES($1, $2)
+	   ON CONFLICT (order_id) DO UPDATE SET order_id = EXCLUDED.order_id -- фиктивное обновление
+	   RETURNING user_id, (xmax = 0) AS is_new
+	`, userID, orderID).Scan(&ownerID, &isNew)
+
+	if err != nil {
+		s.logger.Error("Failed to set user order",
+			zap.Int32("user_id", userID),
+			zap.String("orderID", orderID),
+			zap.Error(err))
+		return err
+	}
+	if !isNew {
+		if userID == ownerID {
+			return ErrOrderAlreadyProcessed
+		}
+		return ErrOrderAlreadyProcessedByOther
+	}
+	return nil
+}

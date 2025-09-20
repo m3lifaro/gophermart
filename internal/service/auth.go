@@ -26,7 +26,7 @@ func NewAuth(secret string) *AuthImpl {
 
 func (h *AuthImpl) GenerateToken(user *model.User) (string, error) {
 	//_, token, err := h.auth.Encode(map[string]interface{}{model.LoginKey: user.Login, model.UserIDKey: user.UUID, model.EmailKey: user.Email, model.RoleKey: user.Role})
-	_, token, err := h.auth.Encode(map[string]interface{}{model.LoginKey: user.Login})
+	_, token, err := h.auth.Encode(map[string]interface{}{model.LoginKey: user.Login, model.UserIDKey: user.ID})
 	if err != nil {
 		return "", fmt.Errorf("error generating jwt token for user(%s): %w", user, err)
 	}
@@ -38,13 +38,15 @@ func (h *AuthImpl) ReadToken(ctx context.Context) (*model.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read jwt token from context (%s): %w", ctx, err)
 	}
+
 	login := claims[model.LoginKey].(string)
-	//uuid := claims[model.UserIDKey].(string)
+	uid := claims[model.UserIDKey].(float64)
+
 	//email := claims[model.EmailKey].(string)
 	//role := claims[model.RoleKey].(string)
 	user := &model.User{
 		Login: login,
-		//UUID:  uuid,
+		ID:    int32(uid),
 		//Email: email,
 		//Role:  role,
 	}

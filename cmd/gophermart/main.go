@@ -44,17 +44,16 @@ func main() {
 		}
 		storage = repository.NewPGStorage(pool, zl)
 	} else {
-		storage = repository.NewMemoryStorage()
-		if err != nil {
-			log.Fatalf("Failed to initialize storage: %v", err)
-		}
+		//storage = repository.NewMemoryStorage()
+		log.Fatalf("Failed to initialize storage: %v", err)
 	}
 
 	zl.Info("Hello world!")
 	authService := service.NewAuth("secret-key")
 
 	userService := service.NewUserService(storage, zl)
-	handlers := handler.NewHandlers(authService, userService, zl)
+	orderService := service.NewOrderService(storage, zl)
+	handlers := handler.NewHandlers(authService, userService, orderService, zl)
 	r := handler.NewRouter(handlers, authService, zl)
 	log.Printf("Server started on %s", cfg.ServeAddress)
 	log.Fatal(http.ListenAndServe(cfg.ServeAddress, r))
