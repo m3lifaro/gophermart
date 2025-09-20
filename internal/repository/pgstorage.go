@@ -23,9 +23,9 @@ func NewPGStorage(pool *pgxpool.Pool, logger *zap.Logger) *PGStorage {
 
 func (s *PGStorage) GetUserByLogin(login string) (*model.UserDao, error) {
 	ctx := context.TODO()
-	var user *model.UserDao = &model.UserDao{
-		"",
-		model.User{},
+	var user = &model.UserDao{
+		Password: "",
+		User:     model.User{},
 	}
 	err := s.pool.QueryRow(ctx, "SELECT id, login, password FROM users WHERE login = $1", login).
 		Scan(
