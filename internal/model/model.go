@@ -11,13 +11,13 @@ type LoginRequest struct {
 }
 
 type User struct {
-	ID    int32  `json:"uid"`
-	Login string `json:"login"`
+	ID    int32  `json:"uid" db:"id"`
+	Login string `json:"login" db:"login"`
 	//Email string `json:"email"`
 	//Role  string `json:"role"`
 }
 type UserDao struct {
-	Password string `json:"password"`
+	Password string `json:"password" db:"password"`
 	User
 }
 type jwtKey = string

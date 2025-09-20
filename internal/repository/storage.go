@@ -1,10 +1,14 @@
 package repository
 
 import (
-	"fmt"
-	err "github.com/m3lifaro/gophermart/internal/errors"
+	"errors"
 	"github.com/m3lifaro/gophermart/internal/model"
 	"sync"
+)
+
+var (
+	ErrUserExists   = errors.New("user already exists")
+	ErrUserNotFound = errors.New("user not found")
 )
 
 type Storage interface {
@@ -29,7 +33,7 @@ func (s *MemoryStorage) GetUserByLogin(login string) (*model.UserDao, error) {
 	defer s.mu.RUnlock()
 	user, ok := s.users[login]
 	if !ok {
-		return nil, fmt.Errorf("user with login: '%s' not found", login)
+		return nil, ErrUserNotFound
 	}
 	return user, nil
 }
@@ -39,7 +43,7 @@ func (s *MemoryStorage) CreateUser(user *model.UserDao) error {
 	defer s.mu.Unlock()
 	_, ok := s.users[user.Login]
 	if ok {
-		return err.ErrUserExists
+		return ErrUserExists
 	}
 	s.users[user.Login] = user
 	return nil

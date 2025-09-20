@@ -12,7 +12,8 @@ import (
 const (
 	defaultHost     = ":8080"
 	defaultLogLevel = "DEBUG"
-	defaultDBDsn    = ""
+	defaultDBDsn    = "postgresql://localhost:5432/melifaro"
+	//defaultDBDsn = ""
 )
 
 type Configuration struct {

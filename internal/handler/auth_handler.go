@@ -3,8 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	internal "github.com/m3lifaro/gophermart/internal/errors"
 	"github.com/m3lifaro/gophermart/internal/model"
+	"github.com/m3lifaro/gophermart/internal/repository"
 	"github.com/m3lifaro/gophermart/internal/service"
 	"go.uber.org/zap"
 	"mime"
@@ -57,7 +57,7 @@ func (h *AuthHandler) ServeCreateHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := h.userService.CreateUser(req.Login, req.Password)
 	if err != nil {
-		if errors.Is(err, internal.ErrUserExists) {
+		if errors.Is(err, repository.ErrUserExists) {
 			w.WriteHeader(http.StatusConflict)
 			w.Write([]byte("Login occupied"))
 			return
@@ -109,7 +109,7 @@ func (h *AuthHandler) ServeLoginHTTP(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.userService.ValidateAndGetUser(req.Login, req.Password)
 	if err != nil {
-		if errors.Is(err, internal.ErrWrongLoginOrPassword) {
+		if errors.Is(err, service.ErrWrongLoginOrPassword) {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write([]byte("Wrong login or password"))
 			return

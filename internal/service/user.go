@@ -1,8 +1,8 @@
 package service
 
 import (
+	"errors"
 	"fmt"
-	internal "github.com/m3lifaro/gophermart/internal/errors"
 	"github.com/m3lifaro/gophermart/internal/model"
 	"github.com/m3lifaro/gophermart/internal/repository"
 	"go.uber.org/zap"
@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	loginRegexp    = regexp.MustCompile(`^[a-zA-Z0-9_]{3,32}$`)
-	passwordRegexp = regexp.MustCompile(`^[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]{8,64}$`)
+	loginRegexp             = regexp.MustCompile(`^[a-zA-Z0-9_]{3,32}$`)
+	passwordRegexp          = regexp.MustCompile(`^[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]{8,64}$`)
+	ErrWrongLoginOrPassword = errors.New("incorrect login or password")
 )
 
 type UserService struct {
@@ -59,7 +60,7 @@ func (s *UserService) ValidateAndGetUser(login, password string) (*model.User, e
 		return nil, fmt.Errorf("got error, while getting user: %w", err) //todo process missing login
 	}
 	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) != nil {
-		return nil, internal.ErrWrongLoginOrPassword
+		return nil, ErrWrongLoginOrPassword
 	}
 	return &user.User, nil
 }
