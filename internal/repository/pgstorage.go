@@ -155,16 +155,26 @@ func (s *PGStorage) UpdateOrder(orderID, status string, amount float64, userID i
 	}
 	defer tx.Rollback(ctx)
 
+	s.logger.Debug("Updating order", zap.String("order_id", orderID),
+		zap.String("status", status),
+		zap.Float64("amount", amount),
+		zap.Int32("user_id", userID))
 	query1 := `UPDATE user_orders SET status = $1, accrual = $2 WHERE order_id = $3`
 	_, err = tx.Exec(ctx, query1, status, amount, orderID)
 	if err != nil {
+		s.logger.Error("Failed to update user_orders", zap.String("order_id", orderID), zap.Error(err))
 		return fmt.Errorf("failed to update order info: %w", err)
 	}
 
 	if amount != 0 {
 		query2 := `UPDATE users SET balance = balance + $1 WHERE id = $2`
 		_, err = tx.Exec(ctx, query2, amount, userID)
+		s.logger.Debug("Updated user balance",
+			zap.String("order_id", orderID),
+			zap.Float64("amount", amount),
+			zap.Int32("user_id", userID))
 		if err != nil {
+			s.logger.Error("Failed to update user balance", zap.String("order_id", orderID), zap.Error(err))
 			return fmt.Errorf("failed to update user balance: %w", err)
 		}
 	}
