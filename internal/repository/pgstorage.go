@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
@@ -114,7 +115,7 @@ func (s *PGStorage) GetOrders(userID int32) ([]model.OrderItem, error) {
 		return nil, err
 	}
 	defer rows.Close()
-
+	var accrual sql.NullFloat64
 	var orders []model.OrderItem
 	for rows.Next() {
 		var order model.OrderItem
@@ -123,9 +124,14 @@ func (s *PGStorage) GetOrders(userID int32) ([]model.OrderItem, error) {
 			&order.Number,
 			&order.Status,
 			&pgTime,
-			&order.Accrual,
+			&accrual,
 		)
 		order.UploadedAt = pgTime.Format(time.RFC3339)
+		if accrual.Valid {
+			order.Accrual = accrual.Float64
+		} else {
+			order.Accrual = 0 // или nil, если ваше поле pointer
+		}
 		if err != nil {
 			s.logger.Error("Failed to scan order row", zap.Error(err))
 			continue
@@ -209,6 +215,9 @@ func (s *PGStorage) WithdrawBonuses(userID int32, orderID string, amount float64
 func (s *PGStorage) GetBalance(userID int32) (*model.UserBalance, error) {
 	ctx := context.TODO()
 	var balance model.UserBalance
+	var current sql.NullFloat64
+	var amount sql.NullFloat64
+
 	err := s.pool.QueryRow(ctx, `
 		SELECT u.balance, uam.amount
 		FROM (SELECT balance, id FROM users WHERE id = $1) u
@@ -217,10 +226,19 @@ func (s *PGStorage) GetBalance(userID int32) (*model.UserBalance, error) {
 		) uam ON u.id = uam.user_id;
     `, userID).
 		Scan(
-			&balance.Current,
-			&balance.Withdrawn,
+			&current,
+			&amount,
 		)
-
+	if current.Valid {
+		balance.Current = current.Float64
+	} else {
+		balance.Current = 0
+	}
+	if amount.Valid {
+		balance.Withdrawn = amount.Float64
+	} else {
+		balance.Withdrawn = 0
+	}
 	if err != nil {
 		s.logger.Error("Failed to get user balance",
 			zap.Int32("user_id", userID),

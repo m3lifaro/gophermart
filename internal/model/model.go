@@ -32,7 +32,7 @@ const (
 type OrderItem struct {
 	Number     string  `json:"number"`
 	Status     string  `json:"status"`
-	Accrual    float32 `json:"accrual,omitempty"`
+	Accrual    float64 `json:"accrual,omitempty"`
 	UploadedAt string  `json:"uploaded_at"`
 }
 
