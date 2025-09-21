@@ -8,15 +8,17 @@ import (
 )
 
 type Handlers struct {
-	Register http.HandlerFunc
-	Login    http.HandlerFunc
-	Orders   http.HandlerFunc
+	Register    http.HandlerFunc
+	Login       http.HandlerFunc
+	CreateOrder http.HandlerFunc
+	OrderList   http.HandlerFunc
 }
 
 func NewHandlers(authService service.Auth, userService *service.UserService, orderService *service.OrderService, logger *zap.Logger) *Handlers {
 	return &Handlers{
-		Register: NewAuthHandler(authService, userService, logger).ServeCreateHTTP,
-		Login:    NewAuthHandler(authService, userService, logger).ServeLoginHTTP,
-		Orders:   NewOrderHandler(authService, orderService, logger).ServeCreateOrderHTTP,
+		Register:    NewAuthHandler(authService, userService, logger).ServeCreateHTTP,
+		Login:       NewAuthHandler(authService, userService, logger).ServeLoginHTTP,
+		CreateOrder: NewOrderHandler(authService, orderService, logger).ServeCreateOrderHTTP,
+		OrderList:   NewOrderHandler(authService, orderService, logger).ServeListOrdersHTTP,
 	}
 }

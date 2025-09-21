@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/m3lifaro/gophermart/internal/model"
 	"go.uber.org/zap"
+	"time"
 )
 
 type PGStorage struct {
@@ -89,4 +90,50 @@ func (s *PGStorage) AddOrder(userID int32, orderID string) error {
 		return ErrOrderAlreadyProcessedByOther
 	}
 	return nil
+}
+
+func (s *PGStorage) GetOrders(userID int32) ([]model.OrderItem, error) {
+	ctx := context.TODO()
+
+	rows, err := s.pool.Query(ctx, `
+        SELECT 
+            order_id, 
+            status,
+            added_at
+        FROM user_orders 
+        WHERE user_id = $1
+        ORDER BY added_at DESC
+    `, userID)
+
+	if err != nil {
+		s.logger.Error("Failed to get user orders",
+			zap.Int32("user_id", userID),
+			zap.Error(err))
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []model.OrderItem
+	for rows.Next() {
+		var order model.OrderItem
+		var pgTime time.Time
+		err := rows.Scan(
+			&order.Number,
+			&order.Status,
+			&pgTime,
+		)
+		order.UploadedAt = pgTime.Format(time.RFC3339)
+		if err != nil {
+			s.logger.Error("Failed to scan order row", zap.Error(err))
+			continue
+		}
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		s.logger.Error("Error during rows iteration", zap.Error(err))
+		return nil, err
+	}
+
+	return orders, nil
 }

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/m3lifaro/gophermart/internal/repository"
 	"github.com/m3lifaro/gophermart/internal/service"
@@ -87,4 +88,38 @@ func (h *OrderHandler) ServeCreateOrderHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func (h *OrderHandler) ServeListOrdersHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	user, err := h.authService.ReadToken(r.Context())
+	if err != nil {
+		h.logger.Error(
+			"got error while reading token",
+			zap.Error(err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", jsonContentType)
+	orders, err := h.orderService.ListOrders(user.ID)
+	if err != nil {
+		h.logger.Error(
+			"got error while processing order",
+			zap.Error(err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if orders == nil || len(orders) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(orders); err != nil {
+		h.logger.Error("Failed to encode user orders response", zap.Error(err))
+	}
 }

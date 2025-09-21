@@ -25,7 +25,8 @@ func NewRouter(h *Handlers, auth service.Auth, logger *zap.Logger) chi.Router {
 			r.Group(func(r chi.Router) {
 				r.Use(jwtauth.Verifier(auth.AuthProvider()))
 				r.Use(jwtauth.Authenticator(auth.AuthProvider()))
-				r.Post("/orders", h.Orders)
+				r.Post("/orders", h.CreateOrder)
+				r.Get("/orders", h.OrderList)
 			})
 			//r.Post("/api/shorten", h.ShortenJSON)
 			//r.Post("/api/shorten/batch", h.BatchShorten)

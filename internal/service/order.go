@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"github.com/m3lifaro/gophermart/internal/model"
 	"github.com/m3lifaro/gophermart/internal/repository"
 	"go.uber.org/zap"
 	"strconv"
@@ -39,6 +40,13 @@ func (s *OrderService) ProcessOrder(userID int32, orderID string) error {
 		return fmt.Errorf("error adding order: %w", err)
 	}
 	return nil
+}
+func (s *OrderService) ListOrders(userID int32) ([]model.OrderItem, error) {
+	orders, err := s.storage.GetOrders(userID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting orders: %w", err)
+	}
+	return orders, nil
 }
 
 func isValidLuhn(number string) bool {

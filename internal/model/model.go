@@ -28,3 +28,10 @@ const (
 	//EmailKey  jwtKey = "email"
 	//RoleKey   jwtKey = "role"
 )
+
+type OrderItem struct {
+	Number     string `json:"number"`
+	Status     string `json:"status"`
+	Accrual    int    `json:"accrual,omitempty"`
+	UploadedAt string `json:"uploaded_at"`
+}
