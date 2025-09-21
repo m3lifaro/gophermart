@@ -21,6 +21,7 @@ type Storage interface {
 	UpdateOrder(orderID, status string, amount float64, userID int32) error
 	WithdrawBonuses(userID int32, orderID string, amount float64) error
 	GetBalance(userID int32) (*model.UserBalance, error)
+	GetWithdrawals(userID int32) ([]model.WithdrawItem, error)
 }
 
 //type MemoryStorage struct {

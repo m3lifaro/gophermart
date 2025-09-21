@@ -21,6 +21,7 @@ func NewRouter(h *Handlers, auth service.Auth, logger *zap.Logger) chi.Router {
 			r.Group(func(r chi.Router) {
 				r.Use(jwtauth.Verifier(auth.AuthProvider()))
 				r.Use(jwtauth.Authenticator(auth.AuthProvider()))
+				r.Get("/withdrawals", h.WithdrawalsList)
 				r.Route("/orders", func(r chi.Router) {
 					r.Post("/", h.CreateOrder)
 					r.Get("/", h.OrderList)

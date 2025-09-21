@@ -51,12 +51,21 @@ func (s *OrderService) ProcessOrder(userID int32, orderID string) error {
 	}
 	return nil
 }
+
 func (s *OrderService) ListOrders(userID int32) ([]model.OrderItem, error) {
 	orders, err := s.storage.GetOrders(userID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting orders: %w", err)
 	}
 	return orders, nil
+}
+
+func (s *OrderService) GetWithdrawals(userID int32) ([]model.WithdrawItem, error) {
+	withdrawals, err := s.storage.GetWithdrawals(userID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting orders: %w", err)
+	}
+	return withdrawals, nil
 }
 
 func (s *OrderService) ProcessAccrual(orderID string, userID int32) {

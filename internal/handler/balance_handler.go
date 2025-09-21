@@ -116,3 +116,43 @@ func (h *BalanceHandler) ServeGetBalanceHTTP(w http.ResponseWriter, r *http.Requ
 		h.logger.Error("Failed to encode user balance response", zap.Error(err))
 	}
 }
+
+func (h *BalanceHandler) ServeGetWithdrawalsHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	user, err := h.authService.ReadToken(r.Context())
+	if err != nil {
+		h.logger.Error(
+			"got error while reading token",
+			zap.Error(err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", jsonContentType)
+	withdrawals, err := h.orderService.GetWithdrawals(user.ID)
+	if err != nil {
+		h.logger.Error(
+			"got error while getting user withdrawals",
+			zap.Error(err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if len(withdrawals) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	h.logger.Debug("Withdrawals served",
+		zap.Int("withdrawals_count", len(withdrawals)),
+		zap.Int32("userID", user.ID),
+		zap.String("login", user.Login),
+		zap.Any("withdrawals", withdrawals),
+	)
+	if err := json.NewEncoder(w).Encode(withdrawals); err != nil {
+		h.logger.Error("Failed to encode user withdrawals response", zap.Error(err))
+	}
+}

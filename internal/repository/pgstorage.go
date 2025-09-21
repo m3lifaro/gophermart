@@ -252,3 +252,54 @@ func (s *PGStorage) GetBalance(userID int32) (*model.UserBalance, error) {
 
 	return &balance, nil
 }
+
+func (s *PGStorage) GetWithdrawals(userID int32) ([]model.WithdrawItem, error) {
+	ctx := context.TODO()
+
+	rows, err := s.pool.Query(ctx, `
+        SELECT 
+            order_id, 
+            processed_at,
+            amount
+        FROM withdrawals 
+        WHERE user_id = $1
+        ORDER BY processed_at DESC
+    `, userID)
+
+	if err != nil {
+		s.logger.Error("Failed to get user withdrawals",
+			zap.Int32("user_id", userID),
+			zap.Error(err))
+		return nil, err
+	}
+	defer rows.Close()
+	var amount sql.NullFloat64
+	var withdrawals []model.WithdrawItem
+	for rows.Next() {
+		var withdrawal model.WithdrawItem
+		var pgTime time.Time
+		err := rows.Scan(
+			&withdrawal.Order,
+			&pgTime,
+			&amount,
+		)
+		withdrawal.ProcessedAt = pgTime.Format(time.RFC3339)
+		if amount.Valid {
+			withdrawal.Sum = amount.Float64
+		} else {
+			withdrawal.Sum = 0
+		}
+		if err != nil {
+			s.logger.Error("Failed to scan withdrawal row", zap.Error(err))
+			continue
+		}
+		withdrawals = append(withdrawals, withdrawal)
+	}
+
+	if err := rows.Err(); err != nil {
+		s.logger.Error("Error during rows iteration", zap.Error(err))
+		return nil, err
+	}
+
+	return withdrawals, nil
+}
