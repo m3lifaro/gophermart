@@ -76,13 +76,13 @@ func (s *OrderService) ProcessAccrual(orderID string) {
 		}
 		defer resp.Body.Close()
 		status := resp.StatusCode
-		if status == http.StatusNoContent {
-			err := s.storage.UpdateOrder(orderID, "INVALID", 0)
-			if err != nil {
-				s.logger.Error("error updating order", zap.Error(err))
-				break
-			}
-		}
+		//if status == http.StatusNoContent {
+		//	err := s.storage.UpdateOrder(orderID, "INVALID", 0)
+		//	if err != nil {
+		//		s.logger.Error("error updating order", zap.Error(err))
+		//		break
+		//	}
+		//}
 		body, _ := io.ReadAll(resp.Body)
 		var orderResp model.ExternalOrderResponse
 		_ = json.Unmarshal(body, &orderResp)
