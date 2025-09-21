@@ -10,6 +10,7 @@ var (
 	ErrUserNotFound                 = errors.New("user not found")
 	ErrOrderAlreadyProcessed        = errors.New("current order already processed")
 	ErrOrderAlreadyProcessedByOther = errors.New("order processed by other user")
+	ErrInsufficientFunds            = errors.New("insufficient funds")
 )
 
 type Storage interface {
@@ -17,7 +18,9 @@ type Storage interface {
 	CreateUser(user *model.UserDao) error
 	AddOrder(userID int32, orderID string) error
 	GetOrders(userID int32) ([]model.OrderItem, error)
-	UpdateOrder(orderID, status string, amount float64) error
+	UpdateOrder(orderID, status string, amount float64, userID int32) error
+	WithdrawBonuses(userID int32, orderID string, amount float64) error
+	GetBalance(userID int32) (*model.UserBalance, error)
 }
 
 //type MemoryStorage struct {

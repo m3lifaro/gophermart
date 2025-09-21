@@ -41,3 +41,13 @@ type ExternalOrderResponse struct {
 	Status  string  `json:"status"`
 	Accrual float64 `json:"accrual,omitempty"`
 }
+
+type WithdrawalRequest struct {
+	Order string  `json:"order"`
+	Sum   float64 `json:"sum"`
+}
+
+type UserBalance struct {
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
+}

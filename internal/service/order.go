@@ -59,8 +59,8 @@ func (s *OrderService) ListOrders(userID int32) ([]model.OrderItem, error) {
 	return orders, nil
 }
 
-func (s *OrderService) ProcessAccrual(orderID string) {
-	err := s.storage.UpdateOrder(orderID, "PROCESSING", 0)
+func (s *OrderService) ProcessAccrual(orderID string, userID int32) {
+	err := s.storage.UpdateOrder(orderID, "PROCESSING", 0, userID)
 	if err != nil {
 		s.logger.Error("error updating order", zap.Error(err))
 		return
@@ -93,7 +93,7 @@ func (s *OrderService) ProcessAccrual(orderID string) {
 		)
 
 		if finalStatuses[orderResp.Status] {
-			err := s.storage.UpdateOrder(orderID, orderResp.Status, orderResp.Accrual)
+			err := s.storage.UpdateOrder(orderID, orderResp.Status, orderResp.Accrual, userID)
 			if err != nil {
 				s.logger.Error("error updating order", zap.Error(err))
 			}
@@ -117,4 +117,24 @@ func isValidLuhn(number string) bool {
 		alt = !alt
 	}
 	return sum%10 == 0
+}
+
+func (s *OrderService) ProcessWithdrawal(userID int32, orderID string, amount float64) error {
+	isValid := isValidLuhn(orderID)
+	if !isValid {
+		return ErrOrderIDLuhnCheck
+	}
+	err := s.storage.WithdrawBonuses(userID, orderID, amount)
+	if err != nil {
+		return fmt.Errorf("error withdraw bonuses: %w", err)
+	}
+	return nil
+}
+
+func (s *OrderService) GetUserBalance(userID int32) (*model.UserBalance, error) {
+	balance, err := s.storage.GetBalance(userID)
+	if err != nil {
+		return nil, fmt.Errorf("got error, while getting user balance: %w", err)
+	}
+	return balance, nil
 }

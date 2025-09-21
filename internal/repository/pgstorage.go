@@ -141,18 +141,92 @@ func (s *PGStorage) GetOrders(userID int32) ([]model.OrderItem, error) {
 	return orders, nil
 }
 
-func (s *PGStorage) UpdateOrder(orderID, status string, amount float64) error {
+func (s *PGStorage) UpdateOrder(orderID, status string, amount float64, userID int32) error {
 	ctx := context.TODO()
-	s.logger.Debug("Updating order", zap.String("order_id", orderID), zap.Float64("amount", amount), zap.String("status", status))
-	query := `
-        UPDATE user_orders 
-        SET status = $1, accrual = $2 
-        WHERE order_id = $3`
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
 
-	_, err := s.pool.Exec(ctx, query, status, amount, orderID)
+	query1 := `UPDATE user_orders SET status = $1, accrual = $2 WHERE order_id = $3`
+	_, err = tx.Exec(ctx, query1, status, amount, orderID)
 	if err != nil {
 		return fmt.Errorf("failed to update order info: %w", err)
 	}
 
+	if amount != 0 {
+		query2 := `UPDATE users SET balance = balance + $1 WHERE id = $2`
+		_, err = tx.Exec(ctx, query2, amount, userID)
+		if err != nil {
+			return fmt.Errorf("failed to update user balance: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
 	return nil
+}
+
+func (s *PGStorage) WithdrawBonuses(userID int32, orderID string, amount float64) error {
+	ctx := context.TODO()
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("error starting transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	updateBalance := `
+        UPDATE users
+        SET balance = balance - $1
+        WHERE id = $2 AND balance >= $1
+    `
+	result, err := tx.Exec(ctx, updateBalance, amount, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update balance: %w", err)
+	}
+	affected := result.RowsAffected()
+
+	if affected == 0 {
+		return ErrInsufficientFunds
+	}
+
+	insertWithdrawal := `
+        INSERT INTO withdrawals(user_id, order_id, amount)
+        VALUES ($1, $2, $3)
+    `
+	_, err = tx.Exec(ctx, insertWithdrawal, userID, orderID, amount)
+	if err != nil {
+		return fmt.Errorf("failed to insert withdrawal: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return nil
+}
+
+func (s *PGStorage) GetBalance(userID int32) (*model.UserBalance, error) {
+	ctx := context.TODO()
+	var balance model.UserBalance
+	err := s.pool.QueryRow(ctx, `
+		SELECT u.balance, uam.amount
+		FROM (SELECT balance, id FROM users WHERE id = $1) u
+		LEFT OUTER JOIN (
+			SELECT sum(amount) as amount, user_id FROM withdrawals WHERE user_id = $1 GROUP BY user_id
+		) uam ON u.id = uam.user_id;
+    `, userID).
+		Scan(
+			&balance.Current,
+			&balance.Withdrawn,
+		)
+
+	if err != nil {
+		s.logger.Error("Failed to get user balance",
+			zap.Int32("user_id", userID),
+			zap.Error(err))
+		return nil, err
+	}
+
+	return &balance, nil
 }

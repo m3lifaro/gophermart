@@ -12,6 +12,8 @@ type Handlers struct {
 	Login       http.HandlerFunc
 	CreateOrder http.HandlerFunc
 	OrderList   http.HandlerFunc
+	Withdraw    http.HandlerFunc
+	UserBalance http.HandlerFunc
 }
 
 func NewHandlers(authService service.Auth, userService *service.UserService, orderService *service.OrderService, logger *zap.Logger) *Handlers {
@@ -20,5 +22,7 @@ func NewHandlers(authService service.Auth, userService *service.UserService, ord
 		Login:       NewAuthHandler(authService, userService, logger).ServeLoginHTTP,
 		CreateOrder: NewOrderHandler(authService, orderService, logger).ServeCreateOrderHTTP,
 		OrderList:   NewOrderHandler(authService, orderService, logger).ServeListOrdersHTTP,
+		Withdraw:    NewBalanceHandler(authService, orderService, logger).ServeWithdrawHTTP,
+		UserBalance: NewBalanceHandler(authService, orderService, logger).ServeGetBalanceHTTP,
 	}
 }

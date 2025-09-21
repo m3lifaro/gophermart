@@ -87,7 +87,7 @@ func (h *OrderHandler) ServeCreateOrderHTTP(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	go h.orderService.ProcessAccrual(orderNum)
+	go h.orderService.ProcessAccrual(orderNum, user.ID)
 	h.logger.Debug("Order created",
 		zap.String("orderNum", orderNum),
 		zap.Int32("userID", user.ID),
