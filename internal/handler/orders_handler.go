@@ -87,6 +87,10 @@ func (h *OrderHandler) ServeCreateOrderHTTP(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	h.logger.Debug("Order created",
+		zap.String("orderNum", orderNum),
+		zap.Int32("userID", user.ID),
+	)
 	w.WriteHeader(http.StatusAccepted)
 }
 
@@ -114,11 +118,16 @@ func (h *OrderHandler) ServeListOrdersHTTP(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	if orders == nil || len(orders) == 0 {
+	if len(orders) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+	h.logger.Debug("Orders served",
+		zap.Int("orders_count", len(orders)),
+		zap.Int32("userID", user.ID),
+		zap.Any("orders", orders),
+	)
 	if err := json.NewEncoder(w).Encode(orders); err != nil {
 		h.logger.Error("Failed to encode user orders response", zap.Error(err))
 	}
