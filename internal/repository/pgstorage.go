@@ -159,16 +159,16 @@ func (s *PGStorage) UpdateOrder(orderID, status string, amount float64, userID i
 		zap.String("status", status),
 		zap.Float64("amount", amount),
 		zap.Int32("user_id", userID))
-	query1 := `UPDATE user_orders SET status = $1, accrual = $2 WHERE order_id = $3`
-	_, err = tx.Exec(ctx, query1, status, amount, orderID)
+	orderUpdateQuery := `UPDATE user_orders SET status = $1, accrual = $2 WHERE order_id = $3`
+	_, err = tx.Exec(ctx, orderUpdateQuery, status, amount, orderID)
 	if err != nil {
 		s.logger.Error("Failed to update user_orders", zap.String("order_id", orderID), zap.Error(err))
 		return fmt.Errorf("failed to update order info: %w", err)
 	}
 
 	if amount != 0 {
-		query2 := `UPDATE users SET balance = balance + $1 WHERE id = $2`
-		_, err = tx.Exec(ctx, query2, amount, userID)
+		balanceUpdateQuery := `UPDATE users SET balance = balance + $1 WHERE id = $2`
+		_, err = tx.Exec(ctx, balanceUpdateQuery, amount, userID)
 		s.logger.Debug("Updated user balance",
 			zap.String("order_id", orderID),
 			zap.Float64("amount", amount),
@@ -225,7 +225,6 @@ func (s *PGStorage) WithdrawBonuses(userID int32, orderID string, amount float64
 func (s *PGStorage) GetBalance(userID int32) (*model.UserBalance, error) {
 	ctx := context.TODO()
 	var balance model.UserBalance
-	var current sql.NullFloat64
 	var amount sql.NullFloat64
 
 	err := s.pool.QueryRow(ctx, `
@@ -236,14 +235,9 @@ func (s *PGStorage) GetBalance(userID int32) (*model.UserBalance, error) {
 		) uam ON u.id = uam.user_id;
     `, userID).
 		Scan(
-			&current,
+			&balance.Current,
 			&amount,
 		)
-	if current.Valid {
-		balance.Current = current.Float64
-	} else {
-		balance.Current = 0
-	}
 	if amount.Valid {
 		balance.Withdrawn = amount.Float64
 	} else {
