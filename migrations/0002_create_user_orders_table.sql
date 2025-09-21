@@ -3,6 +3,7 @@ create table if not exists user_orders (
     user_id bigint not null,
     order_id text not null ,
     added_at timestamp not null default now(),
+    accrual float8,
     status text not null default 'NEW'
 );
 
