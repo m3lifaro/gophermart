@@ -126,6 +126,7 @@ func (h *OrderHandler) ServeListOrdersHTTP(w http.ResponseWriter, r *http.Reques
 	h.logger.Debug("Orders served",
 		zap.Int("orders_count", len(orders)),
 		zap.Int32("userID", user.ID),
+		zap.String("login", user.Login),
 		zap.Any("orders", orders),
 	)
 	if err := json.NewEncoder(w).Encode(orders); err != nil {

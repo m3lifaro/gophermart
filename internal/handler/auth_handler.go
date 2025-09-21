@@ -75,6 +75,10 @@ func (h *AuthHandler) ServeCreateHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	h.logger.Debug("User created",
+		zap.Int32("userID", user.ID),
+		zap.String("login", user.Login),
+	)
 	w.Header().Set("Authorization", "Bearer "+tokenString)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
