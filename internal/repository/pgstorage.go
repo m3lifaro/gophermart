@@ -59,8 +59,8 @@ func (s *PGStorage) CreateUser(user *model.UserDao) error {
 		s.logger.Error("Failed to set user", zap.Any("user", user), zap.Error(err))
 		return err
 	}
+	user.ID = existedID
 	if !isNew {
-		user.ID = existedID
 		return ErrUserExists
 	}
 	return nil
