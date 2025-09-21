@@ -87,7 +87,10 @@ func (s *OrderService) ProcessAccrual(orderID string) {
 		var orderResp model.ExternalOrderResponse
 		_ = json.Unmarshal(body, &orderResp)
 
-		s.logger.Debug("orderResp", zap.Any("orderResp", orderResp))
+		s.logger.Debug("orderResp",
+			zap.Any("orderResp", orderResp),
+			zap.Int("status_code", status),
+		)
 
 		if finalStatuses[orderResp.Status] {
 			err := s.storage.UpdateOrder(orderID, orderResp.Status, orderResp.Accrual)

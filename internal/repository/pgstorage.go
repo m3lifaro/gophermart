@@ -143,7 +143,7 @@ func (s *PGStorage) GetOrders(userID int32) ([]model.OrderItem, error) {
 
 func (s *PGStorage) UpdateOrder(orderID, status string, amount float64) error {
 	ctx := context.TODO()
-
+	s.logger.Debug("Updating order", zap.String("order_id", orderID), zap.Float64("amount", amount), zap.String("status", status))
 	query := `
         UPDATE user_orders 
         SET status = $1, accrual = $2 
