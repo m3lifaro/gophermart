@@ -52,7 +52,7 @@ func main() {
 	authService := service.NewAuth("secret-key")
 
 	userService := service.NewUserService(storage, zl)
-	orderService := service.NewOrderService(storage, zl)
+	orderService := service.NewOrderService(storage, zl, cfg.AccrualSystem)
 	handlers := handler.NewHandlers(authService, userService, orderService, zl)
 	r := handler.NewRouter(handlers, authService, zl)
 	log.Printf("Server started on %s", cfg.ServeAddress)

@@ -17,6 +17,7 @@ type Storage interface {
 	CreateUser(user *model.UserDao) error
 	AddOrder(userID int32, orderID string) error
 	GetOrders(userID int32) ([]model.OrderItem, error)
+	UpdateOrder(orderID, status string, amount float64) error
 }
 
 //type MemoryStorage struct {

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/m3lifaro/gophermart/internal/model"
@@ -99,7 +100,8 @@ func (s *PGStorage) GetOrders(userID int32) ([]model.OrderItem, error) {
         SELECT 
             order_id, 
             status,
-            added_at
+            added_at,
+            accrual
         FROM user_orders 
         WHERE user_id = $1
         ORDER BY added_at DESC
@@ -121,6 +123,7 @@ func (s *PGStorage) GetOrders(userID int32) ([]model.OrderItem, error) {
 			&order.Number,
 			&order.Status,
 			&pgTime,
+			&order.Accrual,
 		)
 		order.UploadedAt = pgTime.Format(time.RFC3339)
 		if err != nil {
@@ -136,4 +139,20 @@ func (s *PGStorage) GetOrders(userID int32) ([]model.OrderItem, error) {
 	}
 
 	return orders, nil
+}
+
+func (s *PGStorage) UpdateOrder(orderID, status string, amount float64) error {
+	ctx := context.TODO()
+
+	query := `
+        UPDATE user_orders 
+        SET status = $1, accrual = $2 
+        WHERE order_id = $3`
+
+	_, err := s.pool.Exec(ctx, query, status, amount, orderID)
+	if err != nil {
+		return fmt.Errorf("failed to update order info: %w", err)
+	}
+
+	return nil
 }

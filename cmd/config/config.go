@@ -10,16 +10,18 @@ import (
 )
 
 const (
-	defaultHost     = ":8080"
-	defaultLogLevel = "DEBUG"
-	defaultDBDsn    = "postgresql://localhost:5432/melifaro"
+	defaultHost          = ":8081"
+	defaultLogLevel      = "DEBUG"
+	defaultDBDsn         = "postgresql://localhost:5432/melifaro"
+	defaultAccrualSystem = "http://:8080"
 	//defaultDBDsn = ""
 )
 
 type Configuration struct {
-	ServeAddress string
-	LogLevel     string
-	DBDsn        string
+	ServeAddress  string
+	LogLevel      string
+	DBDsn         string
+	AccrualSystem string
 }
 
 func Load() (*Configuration, error) {
@@ -27,6 +29,7 @@ func Load() (*Configuration, error) {
 	flag.StringVar(&cfg.ServeAddress, "a", defaultHost, "Address to listen on")
 	flag.StringVar(&cfg.LogLevel, "l", defaultLogLevel, "Log level")
 	flag.StringVar(&cfg.DBDsn, "d", defaultDBDsn, "Database dsn")
+	flag.StringVar(&cfg.AccrualSystem, "r", defaultAccrualSystem, "Accrual system address")
 	flag.Parse()
 	if serverAddr, ok := os.LookupEnv("RUN_ADDRESS"); ok {
 		cfg.ServeAddress = serverAddr
@@ -36,6 +39,9 @@ func Load() (*Configuration, error) {
 	}
 	if dbDsn, ok := os.LookupEnv("DATABASE_URI"); ok {
 		cfg.DBDsn = dbDsn
+	}
+	if accrualSystem, ok := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS"); ok {
+		cfg.AccrualSystem = accrualSystem
 	}
 	err := cfg.Validate()
 	if err != nil {
