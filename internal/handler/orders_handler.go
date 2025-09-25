@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"github.com/m3lifaro/gophermart/internal/concurrent"
 	"github.com/m3lifaro/gophermart/internal/repository"
 	"github.com/m3lifaro/gophermart/internal/service"
 	"go.uber.org/zap"
@@ -15,13 +16,15 @@ type OrderHandler struct {
 	authService  service.Auth
 	logger       *zap.Logger
 	orderService *service.OrderService
+	wp           *concurrent.WorkerPool
 }
 
-func NewOrderHandler(authService service.Auth, orderService *service.OrderService, logger *zap.Logger) *OrderHandler {
+func NewOrderHandler(authService service.Auth, orderService *service.OrderService, logger *zap.Logger, wp *concurrent.WorkerPool) *OrderHandler {
 	return &OrderHandler{
 		authService:  authService,
 		orderService: orderService,
 		logger:       logger,
+		wp:           wp,
 	}
 }
 
@@ -87,7 +90,7 @@ func (h *OrderHandler) ServeCreateOrderHTTP(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	go h.orderService.ProcessAccrual(orderNum, user.ID)
+	h.wp.AddJob(orderNum, user.ID)
 	h.logger.Debug("Order created",
 		zap.String("orderNum", orderNum),
 		zap.Int32("userID", user.ID),

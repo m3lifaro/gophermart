@@ -1,22 +1,20 @@
 package service
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/m3lifaro/gophermart/internal/model"
 	"github.com/m3lifaro/gophermart/internal/repository"
 	"go.uber.org/zap"
-	"io"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 var (
 	ErrOrderIDWrongFormat = errors.New("order id should be a number")
 	ErrOrderIDLuhnCheck   = errors.New("order id should be a valid number")
-	finalStatuses         = map[string]bool{
+	AccrualFinalStatuses  = map[string]bool{
 		"INVALID":   true,
 		"PROCESSED": true,
 	}
@@ -68,49 +66,14 @@ func (s *OrderService) GetWithdrawals(userID int32) ([]model.WithdrawItem, error
 	return withdrawals, nil
 }
 
-func (s *OrderService) ProcessAccrual(orderID string, userID int32) {
-	err := s.storage.UpdateOrder(orderID, "PROCESSING", 0, userID)
-	if err != nil {
-		s.logger.Error("error updating order", zap.Error(err))
-		return
-	}
-	for {
-		resp, err := http.Get(s.accrualSystem + "/api/orders/" + orderID)
-		if err != nil {
-			s.logger.Error("error getting order accrual status",
-				zap.String("orderId", orderID),
-				zap.Error(err))
-			time.Sleep(5 * time.Second)
-			continue
-		}
-		defer resp.Body.Close()
-		status := resp.StatusCode
-		//if status == http.StatusNoContent {
-		//	err := s.storage.UpdateOrder(orderID, "INVALID", 0)
-		//	if err != nil {
-		//		s.logger.Error("error updating order", zap.Error(err))
-		//		break
-		//	}
-		//}
-		body, _ := io.ReadAll(resp.Body)
-		var orderResp model.ExternalOrderResponse
-		_ = json.Unmarshal(body, &orderResp)
-
-		s.logger.Debug("orderResp",
-			zap.Any("orderResp", orderResp),
-			zap.Int("status_code", status),
-		)
-
-		if finalStatuses[orderResp.Status] {
-			err := s.storage.UpdateOrder(orderID, orderResp.Status, orderResp.Accrual, userID)
-			if err != nil {
-				s.logger.Error("error updating order", zap.Error(err))
-			}
-			break
-		}
-		time.Sleep(10 * time.Second)
-	}
+func (s *OrderService) UpdateOrder(orderID, status string, amount float64, userID int32) error {
+	return s.storage.UpdateOrder(orderID, status, amount, userID)
 }
+
+func (s *OrderService) ProcessAccrual(ctx context.Context, orderID string) (*http.Request, error) {
+	return http.NewRequestWithContext(ctx, http.MethodGet, s.accrualSystem+"/api/orders/"+orderID, nil)
+}
+
 func isValidLuhn(number string) bool {
 	var sum int
 	alt := false

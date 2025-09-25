@@ -5,6 +5,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/m3lifaro/gophermart/cmd/config"
+	"github.com/m3lifaro/gophermart/internal/concurrent"
 	"github.com/m3lifaro/gophermart/internal/handler"
 	"github.com/m3lifaro/gophermart/internal/logger"
 	"github.com/m3lifaro/gophermart/internal/repository"
@@ -51,9 +52,13 @@ func main() {
 	zl.Info("Hello world!")
 	authService := service.NewAuth("secret-key")
 
+	workerPool := concurrent.NewWorkerPool(10)
 	userService := service.NewUserService(storage, zl)
 	orderService := service.NewOrderService(storage, zl, cfg.AccrualSystem)
-	handlers := handler.NewHandlers(authService, userService, orderService, zl)
+
+	workerPool.Start(orderService, zl)
+
+	handlers := handler.NewHandlers(authService, userService, orderService, zl, workerPool)
 	r := handler.NewRouter(handlers, authService, zl)
 	log.Printf("Server started on %s", cfg.ServeAddress)
 	log.Fatal(http.ListenAndServe(cfg.ServeAddress, r))
