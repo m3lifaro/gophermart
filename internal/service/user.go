@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	loginRegexp             = regexp.MustCompile(`^[a-zA-Z0-9_]{3,10}$`)
+	loginRegexp             = regexp.MustCompile(`^[a-zA-Z0-9_]{3,32}$`)
 	passwordRegexp          = regexp.MustCompile(`^[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]{8,64}$`)
 	ErrWrongLoginOrPassword = errors.New("incorrect login or password")
 )
