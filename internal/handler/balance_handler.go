@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/m3lifaro/gophermart/internal/model"
@@ -9,6 +10,7 @@ import (
 	"go.uber.org/zap"
 	"mime"
 	"net/http"
+	"time"
 )
 
 type BalanceHandler struct {
@@ -26,6 +28,8 @@ func NewBalanceHandler(authService service.Auth, orderService *service.OrderServ
 }
 
 func (h *BalanceHandler) ServeWithdrawHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -61,7 +65,7 @@ func (h *BalanceHandler) ServeWithdrawHTTP(w http.ResponseWriter, r *http.Reques
 	}
 	defer r.Body.Close()
 
-	err = h.orderService.ProcessWithdrawal(user.ID, req.Order, req.Sum)
+	err = h.orderService.ProcessWithdrawal(ctx, user.ID, req.Order, req.Sum)
 	if err != nil {
 		if errors.Is(err, service.ErrOrderIDLuhnCheck) {
 			w.WriteHeader(http.StatusUnprocessableEntity)
@@ -87,6 +91,8 @@ func (h *BalanceHandler) ServeWithdrawHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *BalanceHandler) ServeGetBalanceHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -101,7 +107,7 @@ func (h *BalanceHandler) ServeGetBalanceHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	w.Header().Set("Content-Type", jsonContentType)
-	balance, err := h.orderService.GetUserBalance(user.ID)
+	balance, err := h.orderService.GetUserBalance(ctx, user.ID)
 	if err != nil {
 		h.logger.Error(
 			"got error while getting user balance",
@@ -118,6 +124,8 @@ func (h *BalanceHandler) ServeGetBalanceHTTP(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *BalanceHandler) ServeGetWithdrawalsHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -132,7 +140,7 @@ func (h *BalanceHandler) ServeGetWithdrawalsHTTP(w http.ResponseWriter, r *http.
 		return
 	}
 	w.Header().Set("Content-Type", jsonContentType)
-	withdrawals, err := h.orderService.GetWithdrawals(user.ID)
+	withdrawals, err := h.orderService.GetWithdrawals(ctx, user.ID)
 	if err != nil {
 		h.logger.Error(
 			"got error while getting user withdrawals",

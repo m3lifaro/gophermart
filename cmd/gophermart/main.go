@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/m3lifaro/gophermart/cmd/config"
@@ -13,6 +14,10 @@ import (
 	"github.com/pressly/goose/v3"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -45,14 +50,12 @@ func main() {
 		}
 		storage = repository.NewPGStorage(pool, zl)
 	} else {
-		//storage = repository.NewMemoryStorage()
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
 
-	zl.Info("Hello world!")
 	authService := service.NewAuth("secret-key")
 
-	workerPool := concurrent.NewWorkerPool(10)
+	workerPool := concurrent.NewWorkerPool(cfg.MaxParallel)
 	userService := service.NewUserService(storage, zl)
 	orderService := service.NewOrderService(storage, zl, cfg.AccrualSystem)
 
@@ -60,6 +63,38 @@ func main() {
 
 	handlers := handler.NewHandlers(authService, userService, orderService, zl, workerPool)
 	r := handler.NewRouter(handlers, authService, zl)
-	log.Printf("Server started on %s", cfg.ServeAddress)
-	log.Fatal(http.ListenAndServe(cfg.ServeAddress, r))
+	server := &http.Server{
+		Addr:    cfg.ServeAddress,
+		Handler: r,
+	}
+
+	serverErr := make(chan error, 1)
+	go func() {
+		log.Printf("Server started on %s", cfg.ServeAddress)
+		err := server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErr:
+		log.Printf("HTTP server error: %v", err)
+	case sig := <-stop:
+		log.Printf("Received shutdown signal: %v", sig)
+	}
+
+	log.Println("Shutting down server and worker pool...")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Printf("HTTP server shutdown error: %v", err)
+	}
+
+	workerPool.Shutdown()
+	log.Println("Graceful shutdown completed.")
 }

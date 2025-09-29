@@ -34,7 +34,7 @@ func NewOrderService(storage repository.Storage, logger *zap.Logger, accrualSyst
 	}
 }
 
-func (s *OrderService) ProcessOrder(userID int32, orderID string) error {
+func (s *OrderService) ProcessOrder(ctx context.Context, userID int32, orderID string) error {
 	_, err := strconv.Atoi(orderID)
 	if err != nil {
 		return ErrOrderIDWrongFormat
@@ -43,31 +43,31 @@ func (s *OrderService) ProcessOrder(userID int32, orderID string) error {
 	if !isValid {
 		return ErrOrderIDLuhnCheck
 	}
-	err = s.storage.AddOrder(userID, orderID)
+	err = s.storage.AddOrder(ctx, userID, orderID)
 	if err != nil {
 		return fmt.Errorf("error adding order: %w", err)
 	}
 	return nil
 }
 
-func (s *OrderService) ListOrders(userID int32) ([]model.OrderItem, error) {
-	orders, err := s.storage.GetOrders(userID)
+func (s *OrderService) ListOrders(ctx context.Context, userID int32) ([]model.OrderItem, error) {
+	orders, err := s.storage.GetOrders(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting orders: %w", err)
 	}
 	return orders, nil
 }
 
-func (s *OrderService) GetWithdrawals(userID int32) ([]model.WithdrawItem, error) {
-	withdrawals, err := s.storage.GetWithdrawals(userID)
+func (s *OrderService) GetWithdrawals(ctx context.Context, userID int32) ([]model.WithdrawItem, error) {
+	withdrawals, err := s.storage.GetWithdrawals(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting orders: %w", err)
 	}
 	return withdrawals, nil
 }
 
-func (s *OrderService) UpdateOrder(orderID, status string, amount float64, userID int32) error {
-	return s.storage.UpdateOrder(orderID, status, amount, userID)
+func (s *OrderService) UpdateOrder(ctx context.Context, orderID, status string, amount float64, userID int32) error {
+	return s.storage.UpdateOrder(ctx, orderID, status, amount, userID)
 }
 
 func (s *OrderService) ProcessAccrual(ctx context.Context, orderID string) (*http.Request, error) {
@@ -91,20 +91,20 @@ func isValidLuhn(number string) bool {
 	return sum%10 == 0
 }
 
-func (s *OrderService) ProcessWithdrawal(userID int32, orderID string, amount float64) error {
+func (s *OrderService) ProcessWithdrawal(ctx context.Context, userID int32, orderID string, amount float64) error {
 	isValid := isValidLuhn(orderID)
 	if !isValid {
 		return ErrOrderIDLuhnCheck
 	}
-	err := s.storage.WithdrawBonuses(userID, orderID, amount)
+	err := s.storage.WithdrawBonuses(ctx, userID, orderID, amount)
 	if err != nil {
 		return fmt.Errorf("error withdraw bonuses: %w", err)
 	}
 	return nil
 }
 
-func (s *OrderService) GetUserBalance(userID int32) (*model.UserBalance, error) {
-	balance, err := s.storage.GetBalance(userID)
+func (s *OrderService) GetUserBalance(ctx context.Context, userID int32) (*model.UserBalance, error) {
+	balance, err := s.storage.GetBalance(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("got error, while getting user balance: %w", err)
 	}

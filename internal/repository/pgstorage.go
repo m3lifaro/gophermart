@@ -24,8 +24,7 @@ func NewPGStorage(pool *pgxpool.Pool, logger *zap.Logger) *PGStorage {
 	}
 }
 
-func (s *PGStorage) GetUserByLogin(login string) (*model.UserDao, error) {
-	ctx := context.TODO()
+func (s *PGStorage) GetUserByLogin(ctx context.Context, login string) (*model.UserDao, error) {
 	var user = &model.UserDao{
 		Password: "",
 		User:     model.User{},
@@ -47,8 +46,7 @@ func (s *PGStorage) GetUserByLogin(login string) (*model.UserDao, error) {
 	return user, nil
 }
 
-func (s *PGStorage) CreateUser(user *model.UserDao) error {
-	ctx := context.TODO()
+func (s *PGStorage) CreateUser(ctx context.Context, user *model.UserDao) error {
 	var existedID int32
 	var isNew bool
 	err := s.pool.QueryRow(ctx, `
@@ -68,8 +66,7 @@ func (s *PGStorage) CreateUser(user *model.UserDao) error {
 	return nil
 }
 
-func (s *PGStorage) AddOrder(userID int32, orderID string) error {
-	ctx := context.TODO()
+func (s *PGStorage) AddOrder(ctx context.Context, userID int32, orderID string) error {
 	var isNew bool
 	var ownerID int32
 	err := s.pool.QueryRow(ctx, `
@@ -94,8 +91,7 @@ func (s *PGStorage) AddOrder(userID int32, orderID string) error {
 	return nil
 }
 
-func (s *PGStorage) GetOrders(userID int32) ([]model.OrderItem, error) {
-	ctx := context.TODO()
+func (s *PGStorage) GetOrders(ctx context.Context, userID int32) ([]model.OrderItem, error) {
 
 	rows, err := s.pool.Query(ctx, `
         SELECT 
@@ -147,8 +143,7 @@ func (s *PGStorage) GetOrders(userID int32) ([]model.OrderItem, error) {
 	return orders, nil
 }
 
-func (s *PGStorage) UpdateOrder(orderID, status string, amount float64, userID int32) error {
-	ctx := context.TODO()
+func (s *PGStorage) UpdateOrder(ctx context.Context, orderID, status string, amount float64, userID int32) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
@@ -185,8 +180,7 @@ func (s *PGStorage) UpdateOrder(orderID, status string, amount float64, userID i
 	return nil
 }
 
-func (s *PGStorage) WithdrawBonuses(userID int32, orderID string, amount float64) error {
-	ctx := context.TODO()
+func (s *PGStorage) WithdrawBonuses(ctx context.Context, userID int32, orderID string, amount float64) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("error starting transaction: %w", err)
@@ -222,8 +216,7 @@ func (s *PGStorage) WithdrawBonuses(userID int32, orderID string, amount float64
 	return nil
 }
 
-func (s *PGStorage) GetBalance(userID int32) (*model.UserBalance, error) {
-	ctx := context.TODO()
+func (s *PGStorage) GetBalance(ctx context.Context, userID int32) (*model.UserBalance, error) {
 	var balance model.UserBalance
 	var amount sql.NullFloat64
 
@@ -253,9 +246,7 @@ func (s *PGStorage) GetBalance(userID int32) (*model.UserBalance, error) {
 	return &balance, nil
 }
 
-func (s *PGStorage) GetWithdrawals(userID int32) ([]model.WithdrawItem, error) {
-	ctx := context.TODO()
-
+func (s *PGStorage) GetWithdrawals(ctx context.Context, userID int32) ([]model.WithdrawItem, error) {
 	rows, err := s.pool.Query(ctx, `
         SELECT 
             order_id, 

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/m3lifaro/gophermart/internal/model"
@@ -9,6 +10,7 @@ import (
 	"go.uber.org/zap"
 	"mime"
 	"net/http"
+	"time"
 )
 
 const jsonContentType = "application/json"
@@ -24,6 +26,8 @@ func NewAuthHandler(authService service.Auth, userService *service.UserService, 
 }
 
 func (h *AuthHandler) ServeCreateHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -55,7 +59,7 @@ func (h *AuthHandler) ServeCreateHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	user, err := h.userService.CreateUser(req.Login, req.Password)
+	user, err := h.userService.CreateUser(ctx, req.Login, req.Password)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -85,6 +89,8 @@ func (h *AuthHandler) ServeCreateHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) ServeLoginHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -111,7 +117,7 @@ func (h *AuthHandler) ServeLoginHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	user, err := h.userService.ValidateAndGetUser(req.Login, req.Password)
+	user, err := h.userService.ValidateAndGetUser(ctx, req.Login, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrWrongLoginOrPassword) {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -134,17 +140,4 @@ func (h *AuthHandler) ServeLoginHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Authorization", "Bearer "+tokenString)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-}
-
-func (h *AuthHandler) ProtectedEndpoint(w http.ResponseWriter, r *http.Request) {
-	user, err := h.authService.ReadToken(r.Context())
-	if err != nil {
-		h.logger.Error(
-			"got error while reading token",
-			zap.Error(err),
-		)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.Write([]byte("Welcome, " + user.Login))
 }

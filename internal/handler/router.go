@@ -8,13 +8,9 @@ import (
 )
 
 func NewRouter(h *Handlers, auth service.Auth, logger *zap.Logger) chi.Router {
-	//func NewRouter(h *Handlers, logger *zap.Logger, auth *auth.AuthImpl) chi.Router {
 	r := chi.NewRouter()
-	//r.Use(gzipMiddleware(logger))
-	//r.Use(LoggingMiddleware(logger))
 
 	r.Group(func(r chi.Router) {
-		//r.Use(authMiddleware(logger, auth))
 		r.Route("/api/user", func(r chi.Router) {
 			r.Post("/register", h.Register)
 			r.Post("/login", h.Login)

@@ -54,7 +54,7 @@ func (wp *WorkerPool) worker(orderService *service.OrderService, logger *zap.Log
 			return
 		case job := <-wp.jobs:
 			logger.Debug("worker received job", zap.String("order_id", job.OrderID))
-			err := orderService.UpdateOrder(job.OrderID, "PROCESSING", 0, job.UserID)
+			err := orderService.UpdateOrder(context.Background(), job.OrderID, "PROCESSING", 0, job.UserID)
 			if err != nil {
 				logger.Error("error updating order", zap.Error(err))
 				continue
@@ -93,7 +93,7 @@ func (wp *WorkerPool) worker(orderService *service.OrderService, logger *zap.Log
 					logger.Warn("429 received, pausing all workers", zap.Duration("retryAfter", retryAfter))
 				}
 				if service.AccrualFinalStatuses[orderResp.Status] {
-					err := orderService.UpdateOrder(job.OrderID, orderResp.Status, orderResp.Accrual, job.UserID)
+					err := orderService.UpdateOrder(context.Background(), job.OrderID, orderResp.Status, orderResp.Accrual, job.UserID)
 					if err != nil {
 						logger.Error("error updating order", zap.Error(err))
 					}

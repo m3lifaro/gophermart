@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"github.com/m3lifaro/gophermart/internal/model"
 )
@@ -14,45 +15,12 @@ var (
 )
 
 type Storage interface {
-	GetUserByLogin(login string) (*model.UserDao, error)
-	CreateUser(user *model.UserDao) error
-	AddOrder(userID int32, orderID string) error
-	GetOrders(userID int32) ([]model.OrderItem, error)
-	UpdateOrder(orderID, status string, amount float64, userID int32) error
-	WithdrawBonuses(userID int32, orderID string, amount float64) error
-	GetBalance(userID int32) (*model.UserBalance, error)
-	GetWithdrawals(userID int32) ([]model.WithdrawItem, error)
+	GetUserByLogin(ctx context.Context, login string) (*model.UserDao, error)
+	CreateUser(ctx context.Context, user *model.UserDao) error
+	AddOrder(ctx context.Context, userID int32, orderID string) error
+	GetOrders(ctx context.Context, userID int32) ([]model.OrderItem, error)
+	UpdateOrder(ctx context.Context, orderID, status string, amount float64, userID int32) error
+	WithdrawBonuses(ctx context.Context, userID int32, orderID string, amount float64) error
+	GetBalance(ctx context.Context, userID int32) (*model.UserBalance, error)
+	GetWithdrawals(ctx context.Context, userID int32) ([]model.WithdrawItem, error)
 }
-
-//type MemoryStorage struct {
-//	mu    sync.RWMutex
-//	users map[string]*model.UserDao
-//}
-//
-//func NewMemoryStorage() *MemoryStorage {
-//	return &MemoryStorage{
-//		users: make(map[string]*model.UserDao),
-//		mu:    sync.RWMutex{},
-//	}
-//}
-//
-//func (s *MemoryStorage) GetUserByLogin(login string) (*model.UserDao, error) {
-//	s.mu.RLock()
-//	defer s.mu.RUnlock()
-//	user, ok := s.users[login]
-//	if !ok {
-//		return nil, ErrUserNotFound
-//	}
-//	return user, nil
-//}
-//
-//func (s *MemoryStorage) CreateUser(user *model.UserDao) error {
-//	s.mu.Lock()
-//	defer s.mu.Unlock()
-//	_, ok := s.users[user.Login]
-//	if ok {
-//		return ErrUserExists
-//	}
-//	s.users[user.Login] = user
-//	return nil
-//}

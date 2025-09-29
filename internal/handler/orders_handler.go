@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/m3lifaro/gophermart/internal/concurrent"
@@ -10,6 +11,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"time"
 )
 
 type OrderHandler struct {
@@ -29,6 +31,8 @@ func NewOrderHandler(authService service.Auth, orderService *service.OrderServic
 }
 
 func (h *OrderHandler) ServeCreateOrderHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -65,7 +69,7 @@ func (h *OrderHandler) ServeCreateOrderHTTP(w http.ResponseWriter, r *http.Reque
 
 	orderNum := string(body)
 
-	err = h.orderService.ProcessOrder(user.ID, orderNum)
+	err = h.orderService.ProcessOrder(ctx, user.ID, orderNum)
 	if err != nil {
 		if errors.Is(err, service.ErrOrderIDWrongFormat) {
 			w.WriteHeader(http.StatusBadRequest)
@@ -99,6 +103,8 @@ func (h *OrderHandler) ServeCreateOrderHTTP(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *OrderHandler) ServeListOrdersHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -113,7 +119,7 @@ func (h *OrderHandler) ServeListOrdersHTTP(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	w.Header().Set("Content-Type", jsonContentType)
-	orders, err := h.orderService.ListOrders(user.ID)
+	orders, err := h.orderService.ListOrders(ctx, user.ID)
 	if err != nil {
 		h.logger.Error(
 			"got error while processing order",

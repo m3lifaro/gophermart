@@ -8,6 +8,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const defaultTimeoutSec = 30
+
 type Handlers struct {
 	Register        http.HandlerFunc
 	Login           http.HandlerFunc

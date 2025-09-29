@@ -14,6 +14,7 @@ const (
 	defaultLogLevel      = "DEBUG"
 	defaultDBDsn         = "postgresql://localhost:5432/melifaro"
 	defaultAccrualSystem = "http://:8080"
+	defaultParallel      = 10
 	//defaultDBDsn = ""
 )
 
@@ -22,6 +23,7 @@ type Configuration struct {
 	LogLevel      string
 	DBDsn         string
 	AccrualSystem string
+	MaxParallel   int
 }
 
 func Load() (*Configuration, error) {
@@ -30,6 +32,7 @@ func Load() (*Configuration, error) {
 	flag.StringVar(&cfg.LogLevel, "l", defaultLogLevel, "Log level")
 	flag.StringVar(&cfg.DBDsn, "d", defaultDBDsn, "Database dsn")
 	flag.StringVar(&cfg.AccrualSystem, "r", defaultAccrualSystem, "Accrual system address")
+	flag.IntVar(&cfg.MaxParallel, "p", defaultParallel, "Max outbound parallel connections to accrual system")
 	flag.Parse()
 	if serverAddr, ok := os.LookupEnv("RUN_ADDRESS"); ok {
 		cfg.ServeAddress = serverAddr
@@ -42,6 +45,14 @@ func Load() (*Configuration, error) {
 	}
 	if accrualSystem, ok := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS"); ok {
 		cfg.AccrualSystem = accrualSystem
+	}
+	if maxParallelStr, ok := os.LookupEnv("MAX_OUTBOUND_CONN"); ok {
+		maxParallel, err := strconv.Atoi(maxParallelStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid parameter MAX_OUTBOUND_CONN. Expected integer, got: %s", maxParallelStr)
+		} else {
+			cfg.MaxParallel = maxParallel
+		}
 	}
 	err := cfg.Validate()
 	if err != nil {
