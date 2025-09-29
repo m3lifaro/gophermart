@@ -9,7 +9,6 @@ import (
 
 func NewRouter(h *Handlers, auth service.Auth, logger *zap.Logger) chi.Router {
 	r := chi.NewRouter()
-
 	r.Group(func(r chi.Router) {
 		r.Route("/api/user", func(r chi.Router) {
 			r.Post("/register", h.Register)
