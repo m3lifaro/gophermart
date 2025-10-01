@@ -126,7 +126,7 @@ func (s *PGStorage) GetOrders(ctx context.Context, userID int32) ([]model.OrderI
 		if accrual.Valid {
 			order.Accrual = accrual.Float64
 		} else {
-			order.Accrual = 0 // или nil, если ваше поле pointer
+			order.Accrual = 0
 		}
 		if err != nil {
 			s.logger.Error("Failed to scan order row", zap.Error(err))

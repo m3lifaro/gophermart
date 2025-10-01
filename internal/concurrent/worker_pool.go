@@ -18,7 +18,6 @@ type Job struct {
 	UserID  int32
 }
 
-// WorkerPool отвечает за запуск воркеров, передачу задач и координацию паузы и завершения
 type WorkerPool struct {
 	jobs         chan Job
 	pauseAll     chan time.Duration
